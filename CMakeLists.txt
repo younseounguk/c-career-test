@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.24)
+project(career_test3 C)
+
+set(CMAKE_C_STANDARD 99)
+
+add_executable(career_test3 main.c src/logger.c include/logger.h src/smtpSvr.c include/smtpSvr.h src/smtpSock.c include/smtpSock.h include/smtpData.h src/smtpSvrRecvFdSet.c include/smtpSvrRecvFdSet.h src/smtpUtils.c include/smtpUtils.h src/smtpInit.c include/smtpInit.h src/smtpSession.c include/smtpSession.h)
