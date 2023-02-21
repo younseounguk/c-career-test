@@ -19,6 +19,6 @@ typedef enum {
 
 
 #define MAX_LOG_SIZE 1024
-
-void smtpLog (int log_lv, const char * fmttxt, ... );
-#define LOG(l,f,a...) smtpLog(l,f,## a )
+extern void setLogLevel(int log_lv);
+extern void smtpLog (int log_lv, int line, const char * file_name, const char * fmttxt, ... );
+#define LOG(l,f,a...) smtpLog(l, __LINE__, __FILE__, f,## a )

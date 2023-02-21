@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdint-gcc.h>
-#include "include/logger.h"
-#include "include/smtpSvr.h"
-#include "include/smtpInit.h"
-#include "include/smtpUtils.h"
+#include "main.h"
 
 int main() {
 

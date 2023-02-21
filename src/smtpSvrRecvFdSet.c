@@ -2,17 +2,8 @@
 // Created by srkim on 23. 2. 19.
 //
 
-#include <stddef.h>
-#include <pthread.h>
-#include <malloc.h>
-#include <sys/select.h>
-#include <errno.h>
-#include <string.h>
-#include <stdint-gcc.h>
-#include "../include/smtpSvrRecvFdSet.h"
-#include "../include/smtpData.h"
-#include "../include/logger.h"
-#include "../include/smtpSock.h"
+#include "main.h"
+
 
 extern int gSysClose;
 
@@ -22,16 +13,18 @@ void * H_SERVER_RECV_FDSET_TH ( void * args )
     struct timeval  timeValue ;
     fd_set readFds   ;
     size_t nLine;
-    char * buf[MAX_BUF_SIZE] = {0,};
-    int SockFd, maxFd, nErr;
-    SmtpSvrArgs_t  * pSvrArgs     = (SmtpSvrArgs_t *)args ;
+    char buf[MAX_BUF_SIZE] = {0,};
+    int sockFd, maxFd, nErr;
+    SmtpSession_t  * session     = (SmtpSession_t *)args ;
     pthread_detach ( pthread_self() ) ;
 
-    SockFd = pSvrArgs->SockFd ;
+    sockFd = session->SockFd ;
+    LOG ( LOG_INF , "%s : SMTP Connection created : fd = %d, SessionId=%s\n", __func__, sockFd, session->SessionId) ;
+    sendGreetingMessage(session);
     while ( !gSysClose ) {
         FD_ZERO ( &readFds ) ;
-        FD_SET  ( SockFd , &readFds);
-        maxFd = SockFd ;
+        FD_SET  ( sockFd , &readFds);
+        maxFd = sockFd ;
         timeValue.tv_sec  = 1 ;
         timeValue.tv_usec = 0 ;
         nErr  = select ( maxFd+1 , &readFds , NULL , NULL , &timeValue ) ;
@@ -41,17 +34,20 @@ void * H_SERVER_RECV_FDSET_TH ( void * args )
             LOG ( LOG_MAJ , "%s : Err. select failed. error = %s\n", __func__, strerror(errno) ) ;
             break ;
         }
-        nLine = smtpReadLine(SockFd, buf, sizeof(buf));
+        nLine = smtpReadLine(sockFd, buf, sizeof(buf));
         if (nLine == 0) {
             break;
         }
 
-
-        LOG(LOG_DBG, "%s", buf);
-
+        if ((nErr = doSmtpDispatch(session, buf)) != SMTP_DISPATCH_OK) {
+            if (nErr == SMTP_DISPATCH_FAIL) {
+                LOG(LOG_INF, "Smtp connection close by error!");
+            }
+            break;
+        }
     }
 
-    LOG ( LOG_INF , "%s : SMTP Connection close : fd = %d\n", __func__, SockFd) ;
-    free(pSvrArgs);
+    LOG ( LOG_INF , "%s : SMTP Connection closed : fd = %d, SessionId=%s\n", __func__, sockFd, session->SessionId) ;
+    delSmtpSession(session->SessionId);
     return NULL;
 }

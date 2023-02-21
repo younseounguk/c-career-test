@@ -2,20 +2,8 @@
 // Created by srkim on 23. 2. 17.
 //
 
-#include <fcntl.h>
-#include <stdint-gcc.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <malloc.h>
-#include <string.h>
-#include "../include/smtpSvr.h"
-#include "../include/logger.h"
-#include "../include/smtpSock.h"
-#include "../include/smtpData.h"
-#include "../include/smtpSvrRecvFdSet.h"
-#include "../include/smtpUtils.h"
+
+#include "main.h"
 
 int    gSysClose    =  0 ;
 
@@ -28,7 +16,7 @@ void * smtpWait ()
     int sessIdx  =  0   ;
 
     unsigned int connId = 0 ;
-    SmtpSvrArgs_t   * pSvrArgs = NULL ;
+    SmtpSession_t   * session = NULL ;
 
     pthread_t           clientTh     ;
     pthread_attr_t      clientThAttr ;
@@ -49,17 +37,24 @@ void * smtpWait ()
             continue;
         }
 
-        pSvrArgs = (SmtpSvrArgs_t *) malloc(sizeof(SmtpSvrArgs_t));
-        if (NULL == pSvrArgs) {
+        session = (SmtpSession_t *) malloc(sizeof(SmtpSession_t));
+        if (NULL == session) {
             close(clientFd);
             continue;
         }
 
-        pSvrArgs->SockFd = clientFd ;
-        pSvrArgs->PortNum = smtpGetPeerPortNum(clientFd);
-        smtpGetPeerIP4Addr ( clientFd , pSvrArgs->StrIP4 );
+        session->SockFd = clientFd ;
+        session->PortNum = smtpGetPeerPortNum(clientFd);
+        smtpGetPeerIP4Addr ( clientFd , session->StrIP4 );
+        smtpSetSessionId(session);
 
-        if ( (nErr=pthread_create(&clientTh , &clientThAttr , H_SERVER_RECV_FDSET_TH , (void *)(pSvrArgs))) < 0 ) {
+        if (addSmtpSession(session) == NULL) {
+            LOG ( LOG_MAJ , "Err. Fail to make smtp session\n") ;
+            close ( clientFd ) ;
+            continue;
+        }
+
+        if ( (nErr=pthread_create(&clientTh , &clientThAttr , H_SERVER_RECV_FDSET_TH , (void *)(session))) < 0 ) {
             LOG ( LOG_MAJ , "Err. New Client Thread Create Failed. Err.= '%s'\n" , strerror(nErr) ) ;
             close ( clientFd ) ;
             msleep ( 100 ) ;

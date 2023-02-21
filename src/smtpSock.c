@@ -2,17 +2,9 @@
 // Created by srkim on 23. 2. 19.
 //
 
-#include <stdint-gcc.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <stdio.h>
-#include "../include/smtpSock.h"
-#include "../include/logger.h"
-#include "../include/smtpSvr.h"
-#include <sys/socket.h>
-#include <arpa/inet.h>
+
+
+#include "main.h"
 
 int smtpAcceptSock(int serverFd) {
     struct sockaddr_in sockAddrin;
@@ -109,7 +101,7 @@ int smtpServerOpen(uint16_t nPort) {
     return sockFd;
 }
 
-size_t smtpReadLine(int sockFd, void *pData, size_t szBuf) {
+size_t smtpReadLine(int sockFd, char *pData, size_t szBuf) {
     char *wp = NULL;
     size_t nByte;
     size_t nByteRead = 0;
@@ -119,7 +111,7 @@ size_t smtpReadLine(int sockFd, void *pData, size_t szBuf) {
     while (nByteRead < szBuf - 1) {
         nByte = read(sockFd, wp, 1);
         nByteRead = wp - (char *) pData;
-
+        //LOG(LOG_INF, "'%c'", *wp);
         if (nByte <= 0) {
             if (!nByte) break; /* EOF */
 
@@ -131,18 +123,57 @@ size_t smtpReadLine(int sockFd, void *pData, size_t szBuf) {
             }
         }
 
-        if (*wp == '\r') {
-            continue;
-        }
-
         if (*wp == '\n') {
-            *wp = 0;
+            *(wp+1) = 0;
             break;
         }
         wp += nByte;
     }
 
     return wp - (char *) pData;
+}
+
+int __smtpSendData ( int sockFd , void *pData , size_t nLength ) {
+    char *          wp          = NULL ;
+
+    size_t          nLeft       = 0 ;
+    ssize_t         nWritten    = 0 ;
+
+    int             sendCount   = 0 ;
+    int             retryCount  = 0 ;
+
+    wp      = (char *) pData    ;
+    nLeft   = nLength ;
+
+    while ( nLeft > 0 )
+    {
+        nWritten = send ( sockFd , wp , nLeft , MSG_NOSIGNAL ) ;
+
+        if ( nWritten <= 0 )
+        {
+            if ( errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS || errno == EINTR ) {
+                if ( retryCount++ > 10 ) {
+                    LOG ( LOG_MAJ , "%s : Err. Retry Error. error=%d, sErr=%s\n" , __func__ , errno , strerror(errno) ) ;
+                    return (-1) ;
+                }
+                continue ;
+            }
+
+            LOG ( LOG_MAJ , "%s : Err. send error. errno=%d, sErr=%s\n" , __func__ , errno , strerror(errno) ) ;
+            return (-1) ;
+        }
+
+        nLeft     -= nWritten ;
+        wp        += nWritten ;
+        sendCount += nWritten ;
+    }
+
+    return sendCount ;
+}
+
+int smtpSendData ( int sockFd , void *pData , size_t nLength ) {
+    LOG(LOG_DBG, "send -> %s", (char *)pData);
+    return __smtpSendData(sockFd, pData, nLength);
 }
 
 
@@ -164,4 +195,8 @@ int smtpGetPeerPortNum ( int sockFd )
     int                 peerlen = sizeof(peer) ;
     getpeername( sockFd, &peer, (socklen_t *)&peerlen );
     return (int)( (unsigned int) peer_in->sin_port ) ;
+}
+
+void smtpSetSessionId(SmtpSession_t * session) {
+    sprintf(session->SessionId, "sid:%s:%d:%d", session->StrIP4, session->PortNum, session->SockFd);
 }

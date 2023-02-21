@@ -2,11 +2,7 @@
 // Created by srkim on 23. 2. 19.
 //
 
-
-#include <time.h>
-#include <errno.h>
-#include "../include/smtpUtils.h"
-
+#include "main.h"
 
 int msleep(long msec)
 {

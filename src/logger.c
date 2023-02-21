@@ -2,14 +2,7 @@
 // Created by srkim on 23. 2. 17.
 //
 
-#include <stdint-gcc.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <bits/types/time_t.h>
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
-#include "../include/logger.h"
+#include "main.h"
 
 static char* getLocalTime(char * buf,size_t sz_buf)
 {
@@ -20,18 +13,44 @@ static char* getLocalTime(char * buf,size_t sz_buf)
 
     return buf;
 }
+int gLogLevel = LOG_INF;
+void setLogLevel(int log_lv) {
+    if (log_lv >= LOG_NONE && log_lv <= LOG_TRC) {
+        gLogLevel = log_lv;
+        return;
+    }
+}
 
-void smtpLog (int log_lv, const char * fmttxt, ... )
+char * getFileName(const char * fullPath) {
+    int wpIdx = 0;
+    for (int i=0;fullPath[i];i++) {
+        if (fullPath[i] == '/') {
+            wpIdx = i + 1;
+        }
+    }
+    return (char *)fullPath + wpIdx;
+}
+
+void smtpLog (int log_lv, int line, const char * file_name, const char * fmttxt, ... )
 {
+    if (log_lv > gLogLevel) {
+        return;
+    }
     va_list ap;
-
     char buf[MAX_LOG_SIZE] = {0,};
     char localTime[64];
     va_start(ap, fmttxt);
     vsprintf(buf, fmttxt, ap);
+    va_end(ap);
+    for (int i =0;buf[i];i++) {
+        char c = buf[i];
+        if (c == '\r') {
+            buf[i] = ' ';
+        }
+    }
     if (buf[strlen(buf)-1] != '\n') {
         strcat(buf, "\n");
     }
-    va_end(ap);
-    printf("%s: %s", getLocalTime(localTime, sizeof(localTime)), buf);
+
+    printf("%s[%s:%d]: %s", getLocalTime(localTime, sizeof(localTime)), getFileName(file_name), line, buf);
 }

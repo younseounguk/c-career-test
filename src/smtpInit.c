@@ -2,11 +2,7 @@
 // Created by srkim on 23. 2. 19.
 //
 
-#include <pthread.h>
-#include <stdint-gcc.h>
-#include "../include/smtpInit.h"
-#include "../include/smtpSvr.h"
-#include "../include/logger.h"
+#include "main.h"
 
 int smtpInitThreads ( void ) {
     pthread_t   smtpTh  ;
@@ -31,6 +27,6 @@ int smtpInitThreads ( void ) {
 int smtpInitProcess( void )
 {
     //smtpInitThreads();
-
+    setLogLevel(LOG_DBG);
     return 0;
 }
