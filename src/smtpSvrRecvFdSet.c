@@ -5,8 +5,37 @@
 #include "main.h"
 
 
-extern int gSysClose;
 
+
+
+
+
+void smtpWaitSync(int serverFd) {
+    int nErr;
+
+    SmtpSession_t *session = NULL;
+
+    pthread_t clientTh;
+    pthread_attr_t clientThAttr;
+    pthread_attr_init(&clientThAttr);
+
+    nErr = pthread_attr_setstacksize(&clientThAttr, (10 * 1024 * 1024));
+
+    while (!gSysClose) {
+
+        if ((session = smtpHandleInboundConnection(serverFd)) == NULL) {
+            break;
+        }
+
+        if ((nErr = pthread_create(&clientTh, &clientThAttr, H_SERVER_RECV_FDSET_TH, (void *) (session))) < 0) {
+            LOG (LOG_MAJ, "Err. New Client Thread Create Failed. Err.= '%s'\n", strerror(nErr));
+            delSmtpSession(session->SessionId);
+            msleep(100);
+            continue;
+        }
+    }
+    close(serverFd);
+}
 
 void * H_SERVER_RECV_FDSET_TH ( void * args )
 {
@@ -34,8 +63,7 @@ void * H_SERVER_RECV_FDSET_TH ( void * args )
             LOG ( LOG_MAJ , "%s : Err. select failed. error = %s\n", __func__, strerror(errno) ) ;
             break ;
         }
-        nLine = smtpReadLine(sockFd, buf, sizeof(buf));
-        if (nLine == 0) {
+        if ((nLine = smtpReadLine(sockFd, buf, sizeof(buf))) <= 0) {
             break;
         }
 

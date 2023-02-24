@@ -25,6 +25,36 @@ int smtpAcceptSock(int serverFd) {
     return clientFd;
 }
 
+SmtpSession_t * smtpHandleInboundConnection(int serverFd) {
+    int clientFd;
+    SmtpSession_t *session = NULL;
+    clientFd = smtpAcceptSock(serverFd);
+
+    if (clientFd < 0) {
+        LOG (LOG_CRT, "Err. smtpAcceptSock() Failed. serverFd = %d\n", serverFd);
+        clientFd = -1;
+        return NULL;
+    }
+
+    session = (SmtpSession_t *) malloc(sizeof(SmtpSession_t));
+    if (NULL == session) {
+        close(clientFd);
+        return NULL;
+    }
+
+    session->SockFd = clientFd;
+    session->PortNum = smtpGetPeerPortNum(clientFd);
+    smtpGetPeerIP4Addr(clientFd, session->StrIP4);
+    smtpSetSessionId(session);
+
+    if (addSmtpSession(session) == NULL) {
+        LOG (LOG_MAJ, "Err. Fail to make smtp session\n");
+        close(clientFd);
+        return NULL;
+    }
+
+    return session;
+}
 
 int smtpServerOpen(uint16_t nPort) {
     struct sockaddr_in sockInAddr;
@@ -197,6 +227,11 @@ int smtpGetPeerPortNum ( int sockFd )
     return (int)( (unsigned int) peer_in->sin_port ) ;
 }
 
+char * smtpMakeSessionId(char * sessionId, char * strIP4, int portNum, int sockFd) {
+    sprintf(sessionId, "sid:%s:%d:%d", strIP4, portNum, sockFd);
+    return sessionId;
+}
+
 void smtpSetSessionId(SmtpSession_t * session) {
-    sprintf(session->SessionId, "sid:%s:%d:%d", session->StrIP4, session->PortNum, session->SockFd);
+    smtpMakeSessionId(session->SessionId, session->StrIP4, session->PortNum, session->SockFd);
 }

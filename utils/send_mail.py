@@ -63,4 +63,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    for idx in range(200):
+        main()
+

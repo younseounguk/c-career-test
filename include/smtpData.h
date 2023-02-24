@@ -7,6 +7,9 @@
 #define MAX_DATA        1024*32
 #define MAX_BUF_SIZE    1024*8
 
+#define TRUE            1
+#define FALSE           0
+
 typedef enum smtpStatus {
     SMTP_STATUS_READY,
     SMTP_STATUS_READ_DATA

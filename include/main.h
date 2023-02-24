@@ -24,10 +24,13 @@
 #include "smtpInit.h"
 #include "smtpSession.h"
 #include "smtpSock.h"
-#include "smtpSvr.h"
 #include "smtpSvrRecvFdSet.h"
 #include "smtpUtils.h"
 #include "smtpDispatch.h"
 #include "smtpMailFile.h"
+#include "smtpSvrRecvEpoll.h"
+#include "smtpItcq.h"
+
+extern int gSysClose;
 
 #endif //CAREER_TEST3_MAIN_H
