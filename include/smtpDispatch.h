@@ -8,7 +8,7 @@
 
 
 
-extern int sendGreetingMessage(SmtpSession_t  * session);
-extern int doSmtpDispatch(SmtpSession_t  * session, char * line);
+extern int sendGreetingMessage(smtp_session_t  * session);
+extern int doSmtpDispatch(smtp_session_t  * session, char * line);
 
 #endif //CAREER_TEST3_SMTPDISPATCH_H

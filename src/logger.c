@@ -22,23 +22,26 @@ void setLogLevel(int log_lv) {
 }
 
 char * getFileName(const char * fullPath) {
-    int wpIdx = 0;
+    int wp_idx = 0;
     for (int i=0;fullPath[i];i++) {
         if (fullPath[i] == '/') {
-            wpIdx = i + 1;
+            wp_idx = i + 1;
         }
     }
-    return (char *)fullPath + wpIdx;
+    return (char *)fullPath + wp_idx;
 }
 
 void smtpLog (int log_lv, int line, const char * file_name, const char * fmttxt, ... )
 {
+    char buf[MAX_LOG_SIZE] = {0,};
+    char local_time[MAX_LOCAL_TIME] = {0,};
+
+    // check now log level
     if (log_lv > gLogLevel) {
         return;
     }
     va_list ap;
-    char buf[MAX_LOG_SIZE] = {0,};
-    char localTime[64];
+
     va_start(ap, fmttxt);
     vsprintf(buf, fmttxt, ap);
     va_end(ap);
@@ -52,5 +55,5 @@ void smtpLog (int log_lv, int line, const char * file_name, const char * fmttxt,
         strcat(buf, "\n");
     }
 
-    printf("%s[%s:%d]: %s", getLocalTime(localTime, sizeof(localTime)), getFileName(file_name), line, buf);
+    printf("%s[%s:%d]: %s", getLocalTime(local_time, sizeof(local_time)), getFileName(file_name), line, buf);
 }

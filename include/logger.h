@@ -18,6 +18,7 @@ typedef enum {
 } LOG_LEVEL;
 
 
+#define MAX_LOCAL_TIME 64
 #define MAX_LOG_SIZE 1024
 extern void setLogLevel(int log_lv);
 extern void smtpLog (int log_lv, int line, const char * file_name, const char * fmttxt, ... );

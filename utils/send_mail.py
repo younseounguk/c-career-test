@@ -63,6 +63,8 @@ def main():
 
 
 if __name__ == "__main__":
-    for idx in range(200):
+    n_send_mail = 300
+    for idx in range(n_send_mail):
+        print("send mail : [%d/%d]" % (idx, n_send_mail) )
         main()
 

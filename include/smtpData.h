@@ -10,19 +10,19 @@
 #define TRUE            1
 #define FALSE           0
 
-typedef enum smtpStatus {
+typedef enum smtp_status {
     SMTP_STATUS_READY,
     SMTP_STATUS_READ_DATA
-} smtpStatus_t;
+} smtp_status_t;
 
-typedef enum smtpMessageType {
+typedef enum smtp_message_type {
     SMTP_UNKNOWN,
     SMTP_HELO,
     SMTP_MAIL,
     SMTP_RCPT,
     SMTP_QUIT,
     SMTP_DATA
-} smtpMessageType_t;
+} smtp_message_type_t;
 
 #define SMTP_DISPATCH_OK 0
 #define SMTP_DISPATCH_FAIL 1

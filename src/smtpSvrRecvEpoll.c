@@ -1,6 +1,3 @@
-//
-// Created by srkim on 23. 2. 22.
-//
 #include <sys/epoll.h>
 #include "main.h"
 
@@ -8,64 +5,64 @@
 int epoll_fd;
 
 
-void smtpWaitAsync(int serverFd){
-    epoll_fd = epoll_create(EPOLL_SIZE);
-    struct epoll_event* events = malloc(sizeof(struct epoll_event)*EPOLL_SIZE);
-
-    int event_count, nLine, nErr;
+void smtpWaitAsync(int server_fd) {
+    int event_count;
     struct epoll_event init_event;
+    epoll_fd = epoll_create(EPOLL_SIZE);
+    struct epoll_event *events = malloc(sizeof(struct epoll_event) * EPOLL_SIZE);
+
+
     memset(&init_event, 0x00, sizeof(struct epoll_event));
     init_event.events = EPOLLIN;
-    init_event.data.fd = serverFd;
-    SmtpSession_t *session = NULL;
+    init_event.data.fd = server_fd;
+    smtp_session_t *session = NULL;
 
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, serverFd, &init_event);
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &init_event);
 
-    while (!gSysClose) {
+    while (!g_sys_close) {
         event_count = epoll_wait(epoll_fd, events, EPOLL_SIZE, -1);
 
-        for( int i = 0 ; i < event_count; ++i ) {
+        for (int i = 0; i < event_count; ++i) {
 
-            if(events[i].data.fd == serverFd)
-            {
-                if ((session = smtpHandleInboundConnection(serverFd)) == NULL) {
+            if (events[i].data.fd == server_fd) {
+                if ((session = smtpHandleInboundConnection(server_fd)) == NULL) {
                     break;
                 }
                 init_event.events = EPOLLIN;
-                init_event.data.fd = session->SockFd;
-                init_event.data.ptr = (void *)session;
-                epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->SockFd, &init_event);
-                LOG ( LOG_INF , "%s : SMTP Connection created : fd = %d, SessionId=%s\n", __func__, session->SockFd, session->SessionId) ;
+                init_event.data.fd = session->sock_fd;
+                init_event.data.ptr = (void *) session;
+                epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &init_event);
+                LOG (LOG_INF, "%s : SMTP Connection created : fd = %d, session_id=%s\n", __func__, session->sock_fd,
+                     session->session_id);
                 sendGreetingMessage(session);
-            }
-            else {
+            } else {
                 itcqPutSession(events[i].data.ptr);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, session->SockFd, NULL);
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, session->sock_fd, NULL);
             }
         }
     }
-    close(serverFd);
+    close(server_fd);
     close(epoll_fd);
 }
 
-void * H_SERVER_EPOLL_WORK_TH ( void * args )
-{
+void *H_SERVER_EPOLL_WORK_TH(void *args) {
     int nLine, nErr;
+    char buf[MAX_BUF_SIZE];
+    smtp_session_t *session;
     struct epoll_event init_event;
+
     memset(&init_event, 0x00, sizeof(struct epoll_event));
-    char buf[MAX_BUF_SIZE] = {0,};
-    SmtpSession_t * session = NULL;
-    while (!gSysClose) {
+
+    while (!g_sys_close) {
         session = itcqGetSession();
         if (session == NULL) {
-            msleep(10);
+            msleep(25);
             continue;
         }
 
-
-
-        if ((nLine = smtpReadLine(session->SockFd, buf, sizeof(buf))) <= 0) {
-            LOG ( LOG_INF , "%s : SMTP Connection closed : fd = %d, SessionId=%s\n", __func__, session->SockFd, session->SessionId) ;
+        if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
+            LOG (LOG_INF, "%s : SMTP Connection closed : fd = %d, session_id=%s\n", __func__, session->sock_fd,
+                 session->session_id);
             continue;
         }
 
@@ -76,16 +73,16 @@ void * H_SERVER_EPOLL_WORK_TH ( void * args )
             continue;
         }
         init_event.events = EPOLLIN;
-        init_event.data.fd = session->SockFd;
-        init_event.data.ptr = (void *)session;
-        epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->SockFd, &init_event);
+        init_event.data.fd = session->sock_fd;
+        init_event.data.ptr = (void *) session;
+        epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &init_event);
 
     }
     return NULL;
 }
 
 
-int smtpStartWorkThreads(int nWorkThreads) {
+int smtpStartWorkThreads(int n_work_threads) {
     int nErr;
     pthread_t clientTh;
     pthread_attr_t clientThAttr;
@@ -93,7 +90,7 @@ int smtpStartWorkThreads(int nWorkThreads) {
 
     nErr = pthread_attr_setstacksize(&clientThAttr, (10 * 1024 * 1024));
 
-    for (int i=0;i<nWorkThreads;i++) {
+    for (int i = 0; i < n_work_threads; i++) {
         if ((nErr = pthread_create(&clientTh, &clientThAttr, H_SERVER_EPOLL_WORK_TH, NULL)) < 0) {
             LOG (LOG_MAJ, "Err. Worker Thread Create Failed. Err.= '%s', idx=%d\n", strerror(nErr), i);
             return -1;

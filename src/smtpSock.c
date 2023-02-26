@@ -6,144 +6,142 @@
 
 #include "main.h"
 
-int smtpAcceptSock(int serverFd) {
-    struct sockaddr_in sockAddrin;
+int smtpAcceptSock(int server_fd) {
+    struct sockaddr_in sock_addr_in;
 
-    int clientFd = -1;
-    int addrLen = sizeof(sockAddrin);
+    int client_fd;
+    int addrLen = sizeof(sock_addr_in);
 
-    clientFd = accept(serverFd, (struct sockaddr *) &sockAddrin, (socklen_t *) &addrLen);
+    client_fd = accept(server_fd, (struct sockaddr *) &sock_addr_in, (socklen_t *) &addrLen);
 
-    LOG (LOG_TRC, "TCP Socket Accepted < new client : %d > \n", clientFd);
+    LOG (LOG_TRC, "TCP Socket Accepted < new client : %d > \n", client_fd);
 
-    if (clientFd < 0) {
-        LOG (LOG_MAJ, "%s : Err. accept() Failed. serverFd = %d , Err is ( %d , %s )\n", __func__, serverFd, errno,
+    if (client_fd < 0) {
+        LOG (LOG_MAJ, "%s : Err. accept() Failed. server_fd = %d , Err is ( %d , %s )\n", __func__, server_fd, errno,
              strerror(errno));
         return -1;
     }
 
-    return clientFd;
+    return client_fd;
 }
 
-SmtpSession_t * smtpHandleInboundConnection(int serverFd) {
-    int clientFd;
-    SmtpSession_t *session = NULL;
-    clientFd = smtpAcceptSock(serverFd);
+smtp_session_t *smtpHandleInboundConnection(int server_fd) {
+    int client_fd;
+    smtp_session_t *session;
+    client_fd = smtpAcceptSock(server_fd);
 
-    if (clientFd < 0) {
-        LOG (LOG_CRT, "Err. smtpAcceptSock() Failed. serverFd = %d\n", serverFd);
-        clientFd = -1;
+    if (client_fd < 0) {
+        LOG (LOG_CRT, "Err. smtpAcceptSock() Failed. server_fd = %d\n", server_fd);
+        client_fd = -1;
         return NULL;
     }
 
-    session = (SmtpSession_t *) malloc(sizeof(SmtpSession_t));
+    session = (smtp_session_t *) malloc(sizeof(smtp_session_t));
     if (NULL == session) {
-        close(clientFd);
+        close(client_fd);
         return NULL;
     }
 
-    session->SockFd = clientFd;
-    session->PortNum = smtpGetPeerPortNum(clientFd);
-    smtpGetPeerIP4Addr(clientFd, session->StrIP4);
+    session->sock_fd = client_fd;
+    session->port_num = smtpGetPeerPortNum(client_fd);
+    smtpGetPeerIP4Addr(client_fd, session->str_ipv4);
     smtpSetSessionId(session);
 
     if (addSmtpSession(session) == NULL) {
         LOG (LOG_MAJ, "Err. Fail to make smtp session\n");
-        close(clientFd);
+        close(client_fd);
         return NULL;
     }
 
     return session;
 }
 
-int smtpServerOpen(uint16_t nPort) {
-    struct sockaddr_in sockInAddr;
-    struct linger optLinger;
-
-    int nRet = 0;
-    int nOpt = 0;
-    int nReuse = 1;
-    int sockFd = -1;
+int smtpServerOpen(uint16_t n_port) {
+    int sock_fd;
+    int n_ret = 0;
+    int n_opt = 0;
+    int n_reuse = 1;
+    struct linger opt_linger;
+    struct sockaddr_in sock_in_addr;
 
     /* 1. Create Server Socket				*/
-    if ((sockFd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         LOG(LOG_INF, "Err.  socket() Failed. \n");
         return (-1);
     }
 
     /* 2. Set socket option : Reuse Address */
-    if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, (char *) &nReuse, sizeof(int)) < 0) {
-        LOG(LOG_INF, "Err.  setsockopt() : Reuse Err. nRet = %d\n", nRet);
-        close(sockFd);
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n_reuse, sizeof(int)) < 0) {
+        LOG(LOG_INF, "Err.  setsockopt() : Reuse Err. n_ret = %d\n", n_ret);
+        close(sock_fd);
         return (-1);
     }
 
     /* 3. Set Socket Option : Linger : When Socket Closed, Prevent Time_Wait Status of Socket   */
-    optLinger.l_onoff = 1;
-    optLinger.l_linger = 0;
+    opt_linger.l_onoff = 1;
+    opt_linger.l_linger = 0;
 
-    if (setsockopt(sockFd, SOL_SOCKET, SO_LINGER, (char *) &optLinger, sizeof(optLinger)) < 0) {
-        LOG(LOG_INF, "Err.  setsockopt() : Linger Err. nRet = %d\n", nRet);
-        close(sockFd);
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_LINGER, (char *) &opt_linger, sizeof(opt_linger)) < 0) {
+        LOG(LOG_INF, "Err.  setsockopt() : Linger Err. n_ret = %d\n", n_ret);
+        close(sock_fd);
         return (-1);
     }
 
     /* 4. Set Socket Option : Re-Use Port	*/
-    nOpt = 1;
-    if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEPORT, &nOpt, sizeof(nOpt)) < 0) {
-        close(sockFd);
+    n_opt = 1;
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEPORT, &n_opt, sizeof(n_opt)) < 0) {
+        close(sock_fd);
         return (-1);
     }
 
     /* 5. Set Socket Option : Recv. Socket Buffer	*/
-    nOpt = 8 * 1024 * 1024;
-    if (setsockopt(sockFd, SOL_SOCKET, SO_RCVBUF, &nOpt, sizeof(nOpt)) < 0) {
+    n_opt = 8 * 1024 * 1024;
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, &n_opt, sizeof(n_opt)) < 0) {
         LOG(LOG_INF, "Err. Setsockopt() : Set Receive Socket Buffer Failed. \n");
-        close(sockFd);
+        close(sock_fd);
         return (-1);
     }
 
     /* 6. Set Socket Option : Send. Socket Buffer	*/
-    if (setsockopt(sockFd, SOL_SOCKET, SO_SNDBUF, &nOpt, sizeof(nOpt)) < 0) {
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, &n_opt, sizeof(n_opt)) < 0) {
         LOG(LOG_INF, "Err. Setsockopt() : Set Send Socket Buffer Failed. \n");
-        close(sockFd);
+        close(sock_fd);
         return (-1);
     }
 
     /* 7. Binding Socket    */
-    sockInAddr.sin_family = AF_INET;
-    sockInAddr.sin_port = htons(nPort);
-    sockInAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sock_in_addr.sin_family = AF_INET;
+    sock_in_addr.sin_port = htons(n_port);
+    sock_in_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(sockFd, (struct sockaddr *) &sockInAddr, sizeof(sockInAddr))) {
-        LOG(LOG_INF, "Err.  bind() Err. nRet = %d\n", nRet);
-        close(sockFd);
+    if (bind(sock_fd, (struct sockaddr *) &sock_in_addr, sizeof(sock_in_addr))) {
+        LOG(LOG_INF, "Err.  bind() Err. n_ret = %d\n", n_ret);
+        close(sock_fd);
         return (-1);
     }
 
     /* 8. Listen Socket		*/
-    if (listen(sockFd, MAX_TCP_LISTEN) < 0) {
-        LOG(LOG_INF, "Err.  listen() Err. nRet = %d\n", nRet);
-        close(sockFd);
+    if (listen(sock_fd, MAX_TCP_LISTEN) < 0) {
+        LOG(LOG_INF, "Err.  listen() Err. n_ret = %d\n", n_ret);
+        close(sock_fd);
         return (-1);
     }
 
-    return sockFd;
+    return sock_fd;
 }
 
-size_t smtpReadLine(int sockFd, char *pData, size_t szBuf) {
+size_t smtpReadLine(int sock_fd, char *p_data, size_t sz_buf) {
     char *wp = NULL;
-    size_t nByte;
-    size_t nByteRead = 0;
-    memset(pData, 0x00, szBuf);
-    wp = (char *) pData;
+    size_t n_byte;
+    size_t n_byte_read = 0;
+    memset(p_data, 0x00, sz_buf);
+    wp = (char *) p_data;
 
-    while (nByteRead < szBuf - 1) {
-        nByte = read(sockFd, wp, 1);
-        nByteRead = wp - (char *) pData;
-        //LOG(LOG_INF, "'%c'", *wp);
-        if (nByte <= 0) {
-            if (!nByte) break; /* EOF */
+    while (n_byte_read < sz_buf - 1) {
+        n_byte = read(sock_fd, wp, 1);
+        n_byte_read = wp - (char *) p_data;
+        if (n_byte <= 0) {
+            if (!n_byte) break; /* EOF */
 
             if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
                 continue;
@@ -154,84 +152,74 @@ size_t smtpReadLine(int sockFd, char *pData, size_t szBuf) {
         }
 
         if (*wp == '\n') {
-            *(wp+1) = 0;
+            *(wp + 1) = 0;
             break;
         }
-        wp += nByte;
+        wp += n_byte;
     }
 
-    return wp - (char *) pData;
+    return wp - (char *) p_data;
 }
 
-int __smtpSendData ( int sockFd , void *pData , size_t nLength ) {
-    char *          wp          = NULL ;
+int smtpSendData(int sock_fd, void *p_data, size_t n_length) {
+    char *wp = NULL;
 
-    size_t          nLeft       = 0 ;
-    ssize_t         nWritten    = 0 ;
+    size_t n_left;
+    ssize_t n_written;
 
-    int             sendCount   = 0 ;
-    int             retryCount  = 0 ;
+    int send_count = 0;
+    int retry_count = 0;
 
-    wp      = (char *) pData    ;
-    nLeft   = nLength ;
+    wp = (char *) p_data;
+    n_left = n_length;
 
-    while ( nLeft > 0 )
-    {
-        nWritten = send ( sockFd , wp , nLeft , MSG_NOSIGNAL ) ;
+    while (n_left > 0) {
+        n_written = send(sock_fd, wp, n_left, MSG_NOSIGNAL);
 
-        if ( nWritten <= 0 )
-        {
-            if ( errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS || errno == EINTR ) {
-                if ( retryCount++ > 10 ) {
-                    LOG ( LOG_MAJ , "%s : Err. Retry Error. error=%d, sErr=%s\n" , __func__ , errno , strerror(errno) ) ;
-                    return (-1) ;
+        if (n_written <= 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS || errno == EINTR) {
+                if (retry_count++ > 10) {
+                    LOG (LOG_MAJ, "%s : Err. Retry Error. error=%d, sErr=%s\n", __func__, errno, strerror(errno));
+                    return (-1);
                 }
-                continue ;
+                continue;
             }
 
-            LOG ( LOG_MAJ , "%s : Err. send error. errno=%d, sErr=%s\n" , __func__ , errno , strerror(errno) ) ;
-            return (-1) ;
+            LOG (LOG_MAJ, "%s : Err. send error. errno=%d, sErr=%s\n", __func__, errno, strerror(errno));
+            return (-1);
         }
 
-        nLeft     -= nWritten ;
-        wp        += nWritten ;
-        sendCount += nWritten ;
+        n_left -= n_written;
+        wp += n_written;
+        send_count += n_written;
     }
 
-    return sendCount ;
+    return send_count;
 }
 
-int smtpSendData ( int sockFd , void *pData , size_t nLength ) {
-    LOG(LOG_DBG, "send -> %s", (char *)pData);
-    return __smtpSendData(sockFd, pData, nLength);
+int smtpGetPeerIP4Addr(int sock_fd, char *str_ipv4) {
+    struct sockaddr peer;
+    struct sockaddr_in *peer_in = (struct sockaddr_in *) &peer;
+    int peerlen = sizeof(peer);
+
+    getpeername(sock_fd, &peer, (socklen_t *) &peerlen);
+    sprintf(str_ipv4, "%s", inet_ntoa(peer_in->sin_addr));
+    return 0;
 }
 
-
-int smtpGetPeerIP4Addr ( int sockFd , char * strIP4 )
-{
-    struct sockaddr     peer ;
-    struct sockaddr_in* peer_in = (struct sockaddr_in *) &peer ;
-    int                 peerlen = sizeof(peer) ;
-
-    getpeername ( sockFd , &peer , (socklen_t *)&peerlen ) ;
-    sprintf ( strIP4 , "%s" , inet_ntoa(peer_in->sin_addr) ) ;
-    return 0 ;
+int smtpGetPeerPortNum(int sock_fd) {
+    struct sockaddr peer;
+    int peer_len = sizeof(peer);
+    struct sockaddr_in *peer_in = (struct sockaddr_in *) &peer;
+    getpeername(sock_fd, &peer, (socklen_t *) &peer_len);
+    return (int) ((unsigned int) peer_in->sin_port);
 }
 
-int smtpGetPeerPortNum ( int sockFd )
-{
-    struct sockaddr     peer ;
-    struct sockaddr_in* peer_in = (struct sockaddr_in *)&peer ;
-    int                 peerlen = sizeof(peer) ;
-    getpeername( sockFd, &peer, (socklen_t *)&peerlen );
-    return (int)( (unsigned int) peer_in->sin_port ) ;
+char *smtpMakeSessionId(char *session_id, char *ls_ipv4, int ln_port, int sock_fd) {
+    sprintf(session_id, "sid:%s:%d:%d", ls_ipv4, ln_port, sock_fd);
+    return session_id;
 }
 
-char * smtpMakeSessionId(char * sessionId, char * strIP4, int portNum, int sockFd) {
-    sprintf(sessionId, "sid:%s:%d:%d", strIP4, portNum, sockFd);
-    return sessionId;
-}
-
-void smtpSetSessionId(SmtpSession_t * session) {
-    smtpMakeSessionId(session->SessionId, session->StrIP4, session->PortNum, session->SockFd);
+void smtpSetSessionId(smtp_session_t *session) {
+    smtpMakeSessionId(session->session_id, session->str_ipv4, session->port_num, session->sock_fd);
 }

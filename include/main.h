@@ -21,7 +21,6 @@
 
 #include "logger.h"
 #include "smtpData.h"
-#include "smtpInit.h"
 #include "smtpSession.h"
 #include "smtpSock.h"
 #include "smtpSvrRecvFdSet.h"
@@ -31,6 +30,6 @@
 #include "smtpSvrRecvEpoll.h"
 #include "smtpItcq.h"
 
-extern int gSysClose;
+extern int g_sys_close;
 
 #endif //CAREER_TEST3_MAIN_H

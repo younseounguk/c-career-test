@@ -10,10 +10,10 @@
 
 
 
-void smtpWaitSync(int serverFd) {
+void smtpWaitSync(int server_fd) {
     int nErr;
 
-    SmtpSession_t *session = NULL;
+    smtp_session_t *session = NULL;
 
     pthread_t clientTh;
     pthread_attr_t clientThAttr;
@@ -21,20 +21,20 @@ void smtpWaitSync(int serverFd) {
 
     nErr = pthread_attr_setstacksize(&clientThAttr, (10 * 1024 * 1024));
 
-    while (!gSysClose) {
+    while (!g_sys_close) {
 
-        if ((session = smtpHandleInboundConnection(serverFd)) == NULL) {
+        if ((session = smtpHandleInboundConnection(server_fd)) == NULL) {
             break;
         }
 
         if ((nErr = pthread_create(&clientTh, &clientThAttr, H_SERVER_RECV_FDSET_TH, (void *) (session))) < 0) {
             LOG (LOG_MAJ, "Err. New Client Thread Create Failed. Err.= '%s'\n", strerror(nErr));
-            delSmtpSession(session->SessionId);
+            delSmtpSession(session->session_id);
             msleep(100);
             continue;
         }
     }
-    close(serverFd);
+    close(server_fd);
 }
 
 void * H_SERVER_RECV_FDSET_TH ( void * args )
@@ -44,13 +44,13 @@ void * H_SERVER_RECV_FDSET_TH ( void * args )
     size_t nLine;
     char buf[MAX_BUF_SIZE] = {0,};
     int sockFd, maxFd, nErr;
-    SmtpSession_t  * session     = (SmtpSession_t *)args ;
+    smtp_session_t  * session     = (smtp_session_t *)args ;
     pthread_detach ( pthread_self() ) ;
 
-    sockFd = session->SockFd ;
-    LOG ( LOG_INF , "%s : SMTP Connection created : fd = %d, SessionId=%s\n", __func__, sockFd, session->SessionId) ;
+    sockFd = session->sock_fd ;
+    LOG ( LOG_INF , "%s : SMTP Connection created : fd = %d, session_id=%s\n", __func__, sockFd, session->session_id) ;
     sendGreetingMessage(session);
-    while ( !gSysClose ) {
+    while ( !g_sys_close ) {
         FD_ZERO ( &readFds ) ;
         FD_SET  ( sockFd , &readFds);
         maxFd = sockFd ;
@@ -75,7 +75,7 @@ void * H_SERVER_RECV_FDSET_TH ( void * args )
         }
     }
 
-    LOG ( LOG_INF , "%s : SMTP Connection closed : fd = %d, SessionId=%s\n", __func__, sockFd, session->SessionId) ;
-    delSmtpSession(session->SessionId);
+    LOG ( LOG_INF , "%s : SMTP Connection closed : fd = %d, session_id=%s\n", __func__, sockFd, session->session_id) ;
+    delSmtpSession(session->session_id);
     return NULL;
 }

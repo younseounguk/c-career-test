@@ -4,6 +4,6 @@
 
 #ifndef CAREER_TEST3_SMTPMAILFILE_H
 #define CAREER_TEST3_SMTPMAILFILE_H
-extern int saveMailAsFile(SmtpSession_t *session);
+extern int saveMailAsFile(smtp_session_t *session);
 #define EML_FILE_NAME "saved_mail.eml"
 #endif //CAREER_TEST3_SMTPMAILFILE_H
