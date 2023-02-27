@@ -1,7 +1,3 @@
-//
-// Created by srkim on 23. 2. 21.
-//
-
 #include "main.h"
 
 int saveMailAsFile(smtp_session_t * session) {

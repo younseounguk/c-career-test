@@ -1,7 +1,3 @@
-//
-// Created by srkim on 23. 2. 17.
-//
-
 #include "main.h"
 
 static char* getLocalTime(char * buf,size_t sz_buf)

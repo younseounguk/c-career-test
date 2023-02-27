@@ -1,16 +1,15 @@
-#include <sys/epoll.h>
 #include "main.h"
+#include <sys/epoll.h>
 
 #define EPOLL_SIZE 1024
 int epoll_fd;
-
+pthread_mutex_t g_epoll_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void smtpWaitAsync(int server_fd) {
     int event_count;
     struct epoll_event init_event;
     epoll_fd = epoll_create(EPOLL_SIZE);
     struct epoll_event *events = malloc(sizeof(struct epoll_event) * EPOLL_SIZE);
-
 
     memset(&init_event, 0x00, sizeof(struct epoll_event));
     init_event.events = EPOLLIN;
@@ -31,13 +30,18 @@ void smtpWaitAsync(int server_fd) {
                 init_event.events = EPOLLIN;
                 init_event.data.fd = session->sock_fd;
                 init_event.data.ptr = (void *) session;
+                pthread_mutex_lock ( &g_epoll_lock ) ;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &init_event);
+                pthread_mutex_unlock ( &g_epoll_lock ) ;
                 LOG (LOG_INF, "%s : SMTP Connection created : fd = %d, session_id=%s\n", __func__, session->sock_fd,
                      session->session_id);
                 sendGreetingMessage(session);
             } else {
-                itcqPutSession(events[i].data.ptr);
+                session = events[i].data.ptr;
+                pthread_mutex_lock ( &g_epoll_lock ) ;
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, session->sock_fd, NULL);
+                pthread_mutex_unlock ( &g_epoll_lock ) ;
+                itcqPutSession(session);
             }
         }
     }
@@ -63,6 +67,7 @@ void *H_SERVER_EPOLL_WORK_TH(void *args) {
         if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
             LOG (LOG_INF, "%s : SMTP Connection closed : fd = %d, session_id=%s\n", __func__, session->sock_fd,
                  session->session_id);
+            delSmtpSession(session->session_id);
             continue;
         }
 
@@ -75,7 +80,10 @@ void *H_SERVER_EPOLL_WORK_TH(void *args) {
         init_event.events = EPOLLIN;
         init_event.data.fd = session->sock_fd;
         init_event.data.ptr = (void *) session;
+
+        pthread_mutex_lock ( &g_epoll_lock ) ;
         epoll_ctl(epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &init_event);
+        pthread_mutex_unlock ( &g_epoll_lock ) ;
 
     }
     return NULL;

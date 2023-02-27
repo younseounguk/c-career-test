@@ -1,8 +1,8 @@
 #include "main.h"
 
-#define USE_EPOLL_WAIT 1
+#define USE_EPOLL_WAIT 0
 #define SMTP_PORT 2500
-#define MAX_ASYNC_WORKS_TH 4
+#define MAX_ASYNC_WORKS_TH 16
 int g_sys_close;
 
 /*

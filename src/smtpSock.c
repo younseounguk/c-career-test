@@ -1,9 +1,3 @@
-//
-// Created by srkim on 23. 2. 19.
-//
-
-
-
 #include "main.h"
 
 int smtpAcceptSock(int server_fd) {

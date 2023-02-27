@@ -1,7 +1,3 @@
-//
-// Created by srkim on 23. 2. 24.
-//
-
 #ifndef CAREER_TEST3_SMTPITCQ_H
 #define CAREER_TEST3_SMTPITCQ_H
 extern smtp_session_t * itcqGetSession();

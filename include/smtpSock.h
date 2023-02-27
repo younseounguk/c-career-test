@@ -1,7 +1,3 @@
-//
-// Created by srkim on 23. 2. 19.
-//
-
 #ifndef CAREER_TEST2_SMTPSOCK_H
 #define CAREER_TEST2_SMTPSOCK_H
 

@@ -4,49 +4,7 @@
 import smtplib
 from email.mime.text import MIMEText
 
-mail_to=[
-    "srkim@terracetech.co.kr",
-    "test1@terracetech.co.kr",
-    "test2@terracetech.co.kr",
-    "test3@terracetech.co.kr",
-    "test4@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test5@terracetech.co.kr",
-    "test6@terracetech.co.kr",
-]
+mail_to=[ "srkim@terracetech.co.kr", ]
 
 def main():
     str_mail_to = ""
@@ -63,7 +21,7 @@ def main():
 
 
 if __name__ == "__main__":
-    n_send_mail = 300
+    n_send_mail = 1
     for idx in range(n_send_mail):
         print("send mail : [%d/%d]" % (idx, n_send_mail) )
         main()
