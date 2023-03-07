@@ -16,7 +16,7 @@ void setLogLevel(int log_lv) {
         return;
     }
 }
-
+ 
 char * getFileName(const char * fullPath) {
     int wp_idx = 0;
     for (int i=0;fullPath[i];i++) {
