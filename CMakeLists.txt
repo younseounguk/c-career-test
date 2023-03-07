@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
-project(career_test3 C)
+project(career_test C)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+
 include_directories(./include ../include)
 add_executable(career_test3 main.c src/logger.c include/logger.h src/smtpSock.c include/smtpSock.h include/smtpData.h src/smtpUtils.c include/smtpUtils.h src/smtpSession.c include/smtpSession.h include/main.h src/smtpDispatch.c include/smtpDispatch.h src/smtpMailFile.c include/smtpMailFile.h src/smtpSvrRecvEpoll.c include/smtpSvrRecvEpoll.h)
