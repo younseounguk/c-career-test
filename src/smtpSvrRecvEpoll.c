@@ -37,11 +37,9 @@ void smtpWaitAsync(int server_fd) {
                      session->session_id);
                 sendGreetingMessage(session);
             } else {
-                session = events[i].data.ptr;
-                pthread_mutex_lock ( &g_epoll_lock ) ;
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, session->sock_fd, NULL);
-                pthread_mutex_unlock ( &g_epoll_lock ) ;
-                itcqPutSession(session);
+            /* interviewer question 2
+                : epoll을 이용하여 session data를 Work Thread로 전달하는 로직
+            */
             }
         }
     }
@@ -52,13 +50,15 @@ void smtpWaitAsync(int server_fd) {
 void *H_SERVER_EPOLL_WORK_TH(void *args) {
     int nLine, nErr;
     char buf[MAX_BUF_SIZE];
-    smtp_session_t *session;
+    smtp_session_t *session = NULL;
     struct epoll_event init_event;
 
     memset(&init_event, 0x00, sizeof(struct epoll_event));
 
     while (!g_sys_close) {
-        session = itcqGetSession();
+        /* interviewer question 3
+            : session data를 받아오는 로직
+        */
         if (session == NULL) {
             msleep(25);
             continue;

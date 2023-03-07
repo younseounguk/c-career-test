@@ -21,19 +21,9 @@ void delSmtpSession(char *session_id) {
     int start_index = hash_id % BUCKET_SIZE;
     int i = 0;
     pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if(g_smtp_sessions[i] != NULL) {
-            smtp_session_t * session =  g_smtp_sessions[i];
-            if (strcmp(session->session_id, session_id) == 0) {
-                close(session->sock_fd);
-                free(session);
-                g_smtp_sessions[i] = NULL;
-                pthread_mutex_unlock ( &g_session_lock ) ;
-                return;
-            }
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
+    /* interviewer question 1-1
+        해시함수를 이용하여 만든 인덱스를 활용하여 g_smtp_session에 일치하는 session정보를 삭제하는 로직
+    */
     pthread_mutex_unlock ( &g_session_lock ) ;
 }
 
@@ -66,16 +56,9 @@ smtp_session_t *addSmtpSession(smtp_session_t *session) {
     i = start_index;
 
     pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if (g_smtp_sessions[i] == NULL) {
-            g_smtp_sessions[i] = session;
-            pthread_mutex_unlock ( &g_session_lock ) ;
-            return session;
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
+    /* interviewer question 1-2
+        해시함수를 이용하여 만든 인덱스를 활용하여 g_smtp_session에 session정보를 추가하는 로직
+    */
     pthread_mutex_unlock ( &g_session_lock ) ;
-    LOG(LOG_MAJ, "Error. fail to add smtp session : session store is full");
-    free(session);
     return NULL;
 };
