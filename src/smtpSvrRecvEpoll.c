@@ -38,9 +38,16 @@ void smtpWaitAsync(int server_fd) {
                 sendGreetingMessage(session);
             } else {
                 session = events[i].data.ptr;
-            /* interviewer question 2-1
-                적절한 자료구조를 이용하여 session을 Work Thread로 전달하는 로직 개발하시오
+            /*  TODO 과제 2-1
+             *   적절한 자료구조를 이용하여 session을 Work Thread로 전달하는 로직 개발하시오
+             */
+            /*  TODO 과제 2-1 답안 코드
+                pthread_mutex_lock ( &g_epoll_lock ) ;
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, session->sock_fd, NULL);
+                pthread_mutex_unlock ( &g_epoll_lock ) ;
+                itcqPutSession(session);
             */
+
             }
         }
     }
@@ -57,8 +64,12 @@ void *H_SERVER_EPOLL_WORK_TH(void *args) {
     memset(&init_event, 0x00, sizeof(struct epoll_event));
 
     while (!g_sys_close) {
-        /* interviewer question 2-2
-            : 적절한 자료구조를 이용하여 session정보를 받아오는 로직을 개발하시오
+        /*  TODO 과제 2-2
+         *   적절한 자료구조를 이용하여 session정보를 받아오는 로직을 개발하시오
+         */
+
+        /*  TODO 과제 2-2 답안코드
+            session = itcqGetSession();
         */
         if (session == NULL) {
             msleep(25);

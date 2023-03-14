@@ -21,10 +21,26 @@ void delSmtpSession(char *session_id) {
     int start_index = hash_id % BUCKET_SIZE;
     int i = 0;
     pthread_mutex_lock ( &g_session_lock ) ;
-    /* interviewer question 1-1
-        smtp 세션을 종료하려고 한다.
-        그동안 사용되었던 session은 현재 해시테이블을 이용하여 관리되고 있었는데
-        해당 테이블에 일치하는 session정보를 전달받은 session id를 이용하여 제거하는 로직을 개발하시오.
+    /*  TODO 과제 1-1
+     *   smtp 세션을 종료하려고 한다.
+     *   그동안 사용되었던 session은 현재 해시테이블을 이용하여 관리되고 있었는데
+     *   해당 테이블에 일치하는 session정보를 전달받은 session id를 이용하여 제거하는 로직을 개발하시오.
+     */
+
+    /*  TODO 과제 1-1 답안 코드
+        do {
+            if(g_smtp_sessions[i] != NULL) {
+                smtp_session_t * session =  g_smtp_sessions[i];
+                if (strcmp(session->session_id, session_id) == 0) {
+                    close(session->sock_fd);
+                    free(session);
+                    g_smtp_sessions[i] = NULL;
+                    pthread_mutex_unlock ( &g_session_lock ) ;
+                    return;
+                }
+            }
+            i = (i + 1) % BUCKET_SIZE;
+        } while (i != start_index);
     */
     pthread_mutex_unlock ( &g_session_lock ) ;
 }
@@ -58,9 +74,20 @@ smtp_session_t *addSmtpSession(smtp_session_t *session) {
     i = start_index;
 
     pthread_mutex_lock ( &g_session_lock ) ;
-    /* interviewer question 1-2
-        smtp 세션을 추가하려고 한다.
-        전달받은 session정보를 활용하여 현재 관리하고 있는 해시테이블에 추가하는 로직을 개발하시오.
+    /*  TODO 과제 1-2
+     *   smtp 세션을 추가하려고 한다.
+     *   전달받은 session정보를 활용하여 현재 관리하고 있는 해시테이블에 추가하는 로직을 개발하시오.
+     */
+
+    /*  TODO 과제 1-2 답안 코드
+        do {
+            if (g_smtp_sessions[i] == NULL) {
+                g_smtp_sessions[i] = session;
+                pthread_mutex_unlock ( &g_session_lock ) ;
+                return session;
+            }
+            i = (i + 1) % BUCKET_SIZE;
+        } while (i != start_index);
     */
     pthread_mutex_unlock ( &g_session_lock ) ;
     return NULL;
