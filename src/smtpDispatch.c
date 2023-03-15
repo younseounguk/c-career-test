@@ -1,3 +1,8 @@
+/*  TODO 과제 2 오류점 찾기
+ *  빌드 후 server 데몬 동작 시 Worker Thread 내 실제 동작에 문제되는 부분이 "3건" 이 존재한다.
+ *  문제되는 부분을 수정 후 동작을 완성 시키시오.
+ */
+
 #include "main.h"
 
 int sendGreetingMessage(smtp_session_t  * session) {
@@ -57,7 +62,7 @@ int onSmtpDataContinue(smtp_session_t  * session, char * line) {
         smtpSendData(session->sock_fd, (void *) message, strlen(message));
         return 0;
     }
-    strcat(session->smtp_data, line);
+    strncat(session->smtp_data, line, sizeof(line)-1);
     return 0;
 }
 

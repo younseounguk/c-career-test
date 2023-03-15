@@ -1,8 +1,10 @@
 #include "main.h"
 
-#define BUCKET_SIZE 4096
-smtp_session_t* g_smtp_sessions[BUCKET_SIZE] = {NULL,};
-pthread_mutex_t g_session_lock = PTHREAD_MUTEX_INITIALIZER;
+/*  TODO 과제 1 공통 사항
+ *  session 관리는 해쉬테이블로 관리된다.
+ *  session 관리 시 충돌을 방지하여야 한다.
+ *  hash_id는 해당 파일에서 제공하는 hash_func을 사용한다.
+ */
 
 int hash_func(const char *string, size_t len) {
     int i;
@@ -17,78 +19,27 @@ int hash_func(const char *string, size_t len) {
 }
 
 void delSmtpSession(char *session_id) {
-    int hash_id = hash_func(session_id, strlen(session_id));
-    int start_index = hash_id % BUCKET_SIZE;
-    int i = 0;
-    pthread_mutex_lock ( &g_session_lock ) ;
     /*  TODO 과제 1-1
      *   smtp 세션을 종료하려고 한다.
      *   그동안 사용되었던 session은 현재 해시테이블을 이용하여 관리되고 있었는데
      *   해당 테이블에 일치하는 session정보를 전달받은 session id를 이용하여 제거하는 로직을 개발하시오.
      */
-
-    /*  TODO 과제 1-1 답안 코드
-        do {
-            if(g_smtp_sessions[i] != NULL) {
-                smtp_session_t * session =  g_smtp_sessions[i];
-                if (strcmp(session->session_id, session_id) == 0) {
-                    close(session->sock_fd);
-                    free(session);
-                    g_smtp_sessions[i] = NULL;
-                    pthread_mutex_unlock ( &g_session_lock ) ;
-                    return;
-                }
-            }
-            i = (i + 1) % BUCKET_SIZE;
-        } while (i != start_index);
-    */
-    pthread_mutex_unlock ( &g_session_lock ) ;
+    return;
 }
 
 smtp_session_t *getSmtpSession(char *session_id) {
-    int hash_id = hash_func(session_id, strlen(session_id));
-    int start_index = hash_id % BUCKET_SIZE;
-    int i = 0;
-    pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if(g_smtp_sessions[i] != NULL) {
-            if (strcmp(g_smtp_sessions[i]->session_id, session_id) == 0) {
-                pthread_mutex_unlock(&g_session_lock);
-                return  g_smtp_sessions[i];
-            }
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
+    /*  TODO 과제 1-2
+     *   session_id에 일치하는 session 정보를 return 해주어야 한다.
+     *   해시테이블에 존재하는 session중 session_id에 일치하는 session을 반환해주시오
+     */
 
-    pthread_mutex_unlock ( &g_session_lock ) ;
-    return NULL;
+    return null;
 }
 
 smtp_session_t *addSmtpSession(smtp_session_t *session) {
-    int i;
-    int start_index;
-    int hash_id;
-
-    hash_id = hash_func(session->session_id, strlen(session->session_id));
-    start_index = hash_id % BUCKET_SIZE;
-    i = start_index;
-
-    pthread_mutex_lock ( &g_session_lock ) ;
-    /*  TODO 과제 1-2
+    /*  TODO 과제 1-3
      *   smtp 세션을 추가하려고 한다.
      *   전달받은 session정보를 활용하여 현재 관리하고 있는 해시테이블에 추가하는 로직을 개발하시오.
      */
-
-    /*  TODO 과제 1-2 답안 코드
-        do {
-            if (g_smtp_sessions[i] == NULL) {
-                g_smtp_sessions[i] = session;
-                pthread_mutex_unlock ( &g_session_lock ) ;
-                return session;
-            }
-            i = (i + 1) % BUCKET_SIZE;
-        } while (i != start_index);
-    */
-    pthread_mutex_unlock ( &g_session_lock ) ;
-    return NULL;
+    return null;
 };
