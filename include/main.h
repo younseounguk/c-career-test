@@ -23,6 +23,7 @@
 #include "smtpDispatch.h"
 #include "smtpMailFile.h"
 #include "smtpSvrRecvEpoll.h"
+#include "smtpItcq.h"
 
 extern int g_sys_close;
 
