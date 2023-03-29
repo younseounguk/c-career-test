@@ -47,6 +47,8 @@ smtp_session_t *smtpHandleInboundConnection(int server_fd) {
         return NULL;
     }
 
+    sendGreetingMessage(session);
+
     return session;
 }
 

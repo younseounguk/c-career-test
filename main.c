@@ -9,8 +9,8 @@ int g_sys_close;
  * 다음 코드는 간단한 SMTP 서버의 구현입니다.
  * TCP Port 2500 으로 클라이언트의 요청을 받고 있으며 accept, date received, close등의 이벤트 감지 및 적절한 처리를 하고 있습니다.
  * 이벤트 감지 방법에는 다음 메커니즘이 제공 됩니다
- *    - epoll  : 비동기식, N개의 Work thread (기본 설정)
- * */
+ *  - 비동기식, N개의 Work thread (기본 설정)
+ */
 
 int main() {
     int server_fd;
