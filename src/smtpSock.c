@@ -36,6 +36,8 @@ smtp_session_t *smtpHandleInboundConnection(int server_fd) {
         return NULL;
     }
 
+    memset(session, 0x00, sizeof(smtp_session_t));
+
     session->sock_fd = client_fd;
     session->port_num = smtpGetPeerPortNum(client_fd);
     smtpGetPeerIP4Addr(client_fd, session->str_ipv4);
@@ -174,7 +176,7 @@ int smtpSendData(int sock_fd, void *p_data, size_t n_length) {
     while (n_left > 0) {
         n_written = send(sock_fd, wp, n_left, MSG_NOSIGNAL);
 
-        if (n_written <= SENDING_RETURN_CODE) {
+        if (n_written <= 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS || errno == EINTR) {
                 if (retry_count++ > 10) {
                     LOG (LOG_MAJ, "%s : Err. Retry Error. error=%d, sErr=%s\n", __func__, errno, strerror(errno));

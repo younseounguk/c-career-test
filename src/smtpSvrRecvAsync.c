@@ -11,7 +11,7 @@ void smtpWaitAsync(int server_fd) {
         *  smtpSvrRecvAsync.c 파일은 비동기 처리를 이용하여 데이터를 제어 하는 로직이 작성 되어 있습니다.
         *  N개의 H_SERVER_WORK_TH 스레드와 하나의 smtpWaitAsync 스레드가 동시에 동작하고 있습니다.
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
-        *  비동기 통신기 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발 하시오.
+        *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발 하시오.
         */
 }
 

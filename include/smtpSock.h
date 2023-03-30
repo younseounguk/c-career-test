@@ -2,7 +2,6 @@
 #define CAREER_TEST2_SMTPSOCK_H
 
 #define MAX_TCP_LISTEN 128
-#define SENDING_RETURN_CODE 1
 
 extern int smtpAcceptSock ( int server_fd );
 extern int smtpServerOpen ( uint16_t n_port );
