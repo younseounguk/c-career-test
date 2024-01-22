@@ -7,6 +7,9 @@
  *  smtpHandleInboundConnection로직을 통해 Connection을 맺는걸 권유 드립니다.(해당 로직을 사용안하셔도 무방합니다.)
  *
  */
+
+int count = 0;
+
 void smtpWaitAsync(int server_fd) {
         /* TODO 과제 2-1
         *  smtpSvrRecvAsync.c 파일은 비동기 처리를 이용하여 데이터를 제어 하는 로직이 작성 되어 있습니다.
@@ -14,6 +17,15 @@ void smtpWaitAsync(int server_fd) {
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
         *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발하여야 합니다.
         */
+	while (1) {
+		smtp_session_t *session = NULL;
+		if ((session = smtpHandleInboundConnection(server_fd)) == NULL) {
+            		msleep(25);
+			continue;
+		}
+            	//msleep(25);
+	}
+	return;
 }
 
 void *H_SERVER_WORK_TH(void *args) {
@@ -26,11 +38,20 @@ void *H_SERVER_WORK_TH(void *args) {
         /* TODO 과제 2-2
         *  session정보를 해당 위치에 받아 올수있게 개발하여야 합니다.
         */
+	int idx = -1;
+	if ((idx = getSmtpSessionIdxForPool()) == -1) {
+            	msleep(25);
+		continue;
+	}
+	
+	session = sessions[idx].session;
 
         if (session == NULL) {
             msleep(25);
             continue;
         }
+
+	if (++count % 100 == 0) msleep(25);
 
         if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
             LOG (LOG_INF, "%s : %sSMTP Connection closed%s : fd = %d, session_id=%s\n", __func__, C_YLLW, C_NRML,
@@ -46,6 +67,8 @@ void *H_SERVER_WORK_TH(void *args) {
             }
             continue;
         }
+	
+	unusedSmtpSession(idx);
 
     }
     return NULL;
