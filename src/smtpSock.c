@@ -42,6 +42,9 @@ smtp_session_t *smtpHandleInboundConnection(int server_fd) {
     session->port_num = smtpGetPeerPortNum(client_fd);
     smtpGetPeerIP4Addr(client_fd, session->str_ipv4);
     smtpSetSessionId(session);
+	//node init information set
+	session->next = NULL;
+	session->is_used = 0;
 
     if (addSmtpSession(session) == NULL) {
         LOG (LOG_MAJ, "Err. Fail to make smtp session\n");
