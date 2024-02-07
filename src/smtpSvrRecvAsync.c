@@ -14,6 +14,18 @@ void smtpWaitAsync(int server_fd) {
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
         *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발하여야 합니다.
         */
+
+		//SMTP 세션 리스트 초기화
+		initSmtpSessionList();
+
+		while (1) {
+			//SMTP 세션 연결을 받아 리스트에 저장.
+			smtp_session_t *session = smtpHandleInboundConnection(server_fd);
+			if (session == NULL) {
+				LOG (LOG_MAJ, "%s : Err. SMTP session is null. server_fd = %d\n", __func__, server_fd);
+			}
+            msleep(25);
+		}
 }
 
 void *H_SERVER_WORK_TH(void *args) {
@@ -26,6 +38,10 @@ void *H_SERVER_WORK_TH(void *args) {
         /* TODO 과제 2-2
         *  session정보를 해당 위치에 받아 올수있게 개발하여야 합니다.
         */
+		//처리할 새로운 세션을 가져옴.
+		if (session == NULL) {
+			session = getSmtpSession();
+		}
 
         if (session == NULL) {
             msleep(25);
@@ -37,8 +53,12 @@ void *H_SERVER_WORK_TH(void *args) {
                  session->sock_fd,
                  session->session_id);
             delSmtpSession(session->session_id);
+			//세션 변수를 초기화해서 새로운 세션을 가져와 처리하도록 함.
+			session = NULL;
             continue;
         }
+
+		printf("[%d] %s \n", nLine, buf);
 
         if ((nErr = doSmtpDispatch(session, buf)) != SMTP_DISPATCH_OK) {
             if (nErr == SMTP_DISPATCH_FAIL) {
@@ -46,7 +66,6 @@ void *H_SERVER_WORK_TH(void *args) {
             }
             continue;
         }
-
     }
     return NULL;
 }
