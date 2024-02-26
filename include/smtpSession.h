@@ -1,7 +1,7 @@
 #ifndef CAREER_TEST3_SMTPSESSION_H
 #define CAREER_TEST3_SMTPSESSION_H
 
-
+#define SESSION_POOL_SIZE 2048
 
 typedef struct smtp_session {
     /* TCP Information */
@@ -17,6 +17,11 @@ typedef struct smtp_session {
     char                smtp_rcpt_to[ MAX_RCPT_TO ];
     char                smtp_mail_from[ MAX_MAIL_FROM ];
 } smtp_session_t;
+
+#if 0
+smtp_session_t session_pool[1024] ;
+int session_count = 0;
+#endif
 
 extern void delSmtpSession(char * session_id);
 extern smtp_session_t * addSmtpSession(smtp_session_t * session);

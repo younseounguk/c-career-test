@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <malloc.h>
+#include <stdbool.h>
 
 #include "logger.h"
 #include "smtpData.h"
