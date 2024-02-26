@@ -1,81 +1,31 @@
 #include "main.h"
 
-#define BUCKET_SIZE 4096
-smtp_session_t* g_smtp_sessions[BUCKET_SIZE] = {NULL,};
-pthread_mutex_t g_session_lock = PTHREAD_MUTEX_INITIALIZER;
-
-int hash_func(const char *string, size_t len) {
-    int i;
-    int hash;
-
-    hash = 0;
-    for (i = 0; i < len; ++i) {
-        hash = 65599 * hash + string[i];
-    }
-
-    return hash ^ (hash >> 16);
-}
+/*  TODO 과제 1 공통 사항
+ *  session 관리는 Socket정보를 보관하기 위해 사용합니다.
+ *  다량의 smtp session 정보를 보관하는 보관소가 존재하여야 합니다..
+ *  smtp session 관리 시 충돌을 방지하기 위한 적절한 매커니즘을 적용하여 개발하여야 합니다.
+ */
 
 void delSmtpSession(char *session_id) {
-    int hash_id = hash_func(session_id, strlen(session_id));
-    int start_index = hash_id % BUCKET_SIZE;
-    int i = 0;
-    pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if(g_smtp_sessions[i] != NULL) {
-            smtp_session_t * session =  g_smtp_sessions[i];
-            if (strcmp(session->session_id, session_id) == 0) {
-                close(session->sock_fd);
-                free(session);
-                g_smtp_sessions[i] = NULL;
-                pthread_mutex_unlock ( &g_session_lock ) ;
-                return;
-            }
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
-    pthread_mutex_unlock ( &g_session_lock ) ;
-}
-
-smtp_session_t *getSmtpSession(char *session_id) {
-    int hash_id = hash_func(session_id, strlen(session_id));
-    int start_index = hash_id % BUCKET_SIZE;
-    int i = 0;
-    pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if(g_smtp_sessions[i] != NULL) {
-            if (strcmp(g_smtp_sessions[i]->session_id, session_id) == 0) {
-                pthread_mutex_unlock(&g_session_lock);
-                return  g_smtp_sessions[i];
-            }
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
-
-    pthread_mutex_unlock ( &g_session_lock ) ;
-    return NULL;
+    /*  TODO 과제 1-1
+     *   smtp 세션을 종료
+     *   그동안 사용되었던 session을 session_id를 이용하여 session 보관소에서 제거하는 로직을 개발하여야 합니다.
+     */
+    return;
 }
 
 smtp_session_t *addSmtpSession(smtp_session_t *session) {
-    int i;
-    int start_index;
-    int hash_id;
-
-    hash_id = hash_func(session->session_id, strlen(session->session_id));
-    start_index = hash_id % BUCKET_SIZE;
-    i = start_index;
-
-    pthread_mutex_lock ( &g_session_lock ) ;
-    do {
-        if (g_smtp_sessions[i] == NULL) {
-            g_smtp_sessions[i] = session;
-            pthread_mutex_unlock ( &g_session_lock ) ;
-            return session;
-        }
-        i = (i + 1) % BUCKET_SIZE;
-    } while (i != start_index);
-    pthread_mutex_unlock ( &g_session_lock ) ;
-    LOG(LOG_MAJ, "Error. fail to add smtp session : session store is full");
-    free(session);
+    /*  TODO 과제 1-2
+     *   smtp 세션을 추가
+     *   전달받은 smtp session정보를 활용하여 현재 관리하고 있는 smtp session 보관소에 추가하는 로직을 개발하여야 합니다.
+     */
     return NULL;
-};
+}
+
+smtp_session_t *getSmtpSession(char *session_id) {
+    /*  TODO 과제 1-3 :: 해당 로직은 비동기 로직 흐름상 과제 진행을 해도되고 안해도 무방합니다. (PASS 가능)
+     *   smtp 세션을 session_id를 활용하여 가져오려고 합니다.
+     *   전달받은 smtp session_id 정보를 활용하여 현재 관리하고 있는 smtp session 보관소에서 session을 가져오는 로직을 개발하여야 합니다.
+     */
+    return NULL;
+}

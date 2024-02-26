@@ -19,7 +19,6 @@ typedef struct smtp_session {
 } smtp_session_t;
 
 extern void delSmtpSession(char * session_id);
-extern smtp_session_t * getSmtpSession(char * session_id);
 extern smtp_session_t * addSmtpSession(smtp_session_t * session);
 
 #endif //CAREER_TEST3_SMTPSESSION_H

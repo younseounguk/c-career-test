@@ -36,6 +36,8 @@ smtp_session_t *smtpHandleInboundConnection(int server_fd) {
         return NULL;
     }
 
+    memset(session, 0x00, sizeof(smtp_session_t));
+
     session->sock_fd = client_fd;
     session->port_num = smtpGetPeerPortNum(client_fd);
     smtpGetPeerIP4Addr(client_fd, session->str_ipv4);
@@ -46,6 +48,8 @@ smtp_session_t *smtpHandleInboundConnection(int server_fd) {
         close(client_fd);
         return NULL;
     }
+
+    sendGreetingMessage(session);
 
     return session;
 }
@@ -157,6 +161,8 @@ size_t smtpReadLine(int sock_fd, char *p_data, size_t sz_buf) {
 
 int smtpSendData(int sock_fd, void *p_data, size_t n_length) {
     char *wp = NULL;
+
+    LOG(LOG_DBG, "%ssend%s --> %s", C_RED, C_NRML, (char *)p_data);
 
     size_t n_left;
     ssize_t n_written;
