@@ -7,6 +7,54 @@
  *  smtpHandleInboundConnection로직을 통해 Connection을 맺는걸 권유 드립니다.(해당 로직을 사용안하셔도 무방합니다.)
  *
  */
+
+#define MAX_LIST 512
+
+char* pop_id();
+int store_id(char* session_id);
+
+pthread_mutex_t getter_lock  = PTHREAD_MUTEX_INITIALIZER;
+int pop_index = 0;
+int store_index = 0;
+char* session_id_list[MAX_LIST] = {0, };
+
+char* pop_id() {
+    // session id list에 저장된 id pop
+    char* return_id = NULL;
+
+    pthread_mutex_lock(&getter_lock);  
+    if(session_id_list[pop_index] != NULL) {     
+        
+        return_id = session_id_list[pop_index];
+        session_id_list[pop_index] = NULL;
+        pop_index++;
+        
+        if (pop_index == MAX_LIST) {
+            pop_index = 0;
+        }    
+        
+    }
+    pthread_mutex_unlock(&getter_lock);
+    return return_id;
+}
+
+int store_id(char* session_id) {
+    // session id 저장
+    if(session_id_list[store_index] != NULL) {
+        msleep(100);
+        return 1;
+    }
+
+    session_id_list[store_index] = session_id;
+    store_index++;
+
+    if(store_index == MAX_LIST) {
+        store_index = 0;
+    }
+
+    return 0;
+}
+
 void smtpWaitAsync(int server_fd) {
         /* TODO 과제 2-1
         *  smtpSvrRecvAsync.c 파일은 비동기 처리를 이용하여 데이터를 제어 하는 로직이 작성 되어 있습니다.
@@ -14,6 +62,44 @@ void smtpWaitAsync(int server_fd) {
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
         *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발하여야 합니다.
         */
+
+    struct timeval timeout;
+    fd_set reads, temps;
+    int fd;
+    int fd_max;
+
+    // fd 초기화및server_fd에 설정
+    FD_ZERO(&reads);
+    FD_SET(server_fd, &reads);
+    fd_max = server_fd;
+
+    while(1) {
+        temps = reads;
+        timeout.tv_sec = 2;
+        timeout.tv_usec = 0;
+
+        if(select(fd_max + 1, &temps, 0, 0, &timeout) < 0) {
+            // err log 출력
+            LOG(LOG_CRT, "Err. select error.");
+            return;
+        }
+        
+        // 설정된 fd에서 클라이언트 연결 요청 확인
+        for(fd = 0; fd < fd_max+1; fd++) {
+            if(FD_ISSET(fd, &temps)) {
+                if(fd == server_fd) {
+                    // client 연결 수락 및 세션 생성
+                    smtp_session_t* cur_session = smtpHandleInboundConnection(server_fd);
+                    
+                    // 세션 정보 저장
+                    addSmtpSession(cur_session);
+
+                    while(store_id(cur_session->session_id) != 0);
+                }
+            }
+        }
+    }
+    return;
 }
 
 void *H_SERVER_WORK_TH(void *args) {
@@ -21,17 +107,22 @@ void *H_SERVER_WORK_TH(void *args) {
     char buf[MAX_BUF_SIZE];
     smtp_session_t *session = NULL;
 
+    char* session_id = NULL;    
+
     while (!g_sys_close) {
 
         /* TODO 과제 2-2
         *  session정보를 해당 위치에 받아 올수있게 개발하여야 합니다.
         */
-
+        
+        session = getSmtpSession(session_id);
+        
         if (session == NULL) {
             msleep(25);
+            session_id = pop_id();
             continue;
         }
-
+    
         if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
             LOG (LOG_INF, "%s : %sSMTP Connection closed%s : fd = %d, session_id=%s\n", __func__, C_YLLW, C_NRML,
                  session->sock_fd,
@@ -44,6 +135,8 @@ void *H_SERVER_WORK_TH(void *args) {
             if (nErr == SMTP_DISPATCH_FAIL) {
                 LOG(LOG_INF, "Smtp connection close by error!");
             }
+
+            delSmtpSession(session->session_id);
             continue;
         }
 
