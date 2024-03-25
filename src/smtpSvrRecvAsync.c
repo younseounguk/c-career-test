@@ -1,5 +1,7 @@
 #include "main.h"
 
+int g_msqid = -1;
+
 /* TODO 과제 2 공통
  *  비동기 통신방식으로 데이터가 수신 처리되어야 합니다.
  *  기존 소스코드 변경 및 파일이 추가하는데에는 전혀 제약사향이 없습니다.
@@ -14,11 +16,56 @@ void smtpWaitAsync(int server_fd) {
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
         *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발하여야 합니다.
         */
+	smtp_session_t *session = NULL;
+
+	while (!g_sys_close) {
+		session = smtpHandleInboundConnection(server_fd);
+		if (NULL == session) {
+			LOG(LOG_MAJ, "ERROR: socket connection failed");
+			msleep(25);
+			continue;
+		}
+
+		LOG (LOG_INF, "%s : %sSMTP Connection created%s : fd = %d, session_id=%s\n", __func__, C_YLLW, C_NRML,
+				session->sock_fd,
+				session->session_id);
+
+		if (0 > msgsnd(g_msqid, session->session_id, strlen(session->session_id), IPC_NOWAIT)) {
+			LOG(LOG_MAJ, "ERROR: msq send failed");
+			msleep(25);
+			continue;
+		}
+
+		msleep(25);
+	}
+}
+
+void readAndDispatch(smtp_session_t *session) {
+	char buf[MAX_BUF_SIZE];
+	int nLine, nErr;
+
+	while (!g_sys_close) {
+		if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
+			LOG (LOG_INF, "%s : %sSMTP Connection closed%s : fd = %d, session_id=%s\n", __func__, C_YLLW, C_NRML,
+					session->sock_fd,
+					session->session_id);
+			delSmtpSession(session->session_id);
+			break;
+		}
+
+		if ((nErr = doSmtpDispatch(session, buf)) != SMTP_DISPATCH_OK) {
+			if (nErr == SMTP_DISPATCH_FAIL) {
+				LOG(LOG_INF, "Smtp connection close by error!");
+			}
+			delSmtpSession(session->session_id);
+			break;
+		}
+	}
 }
 
 void *H_SERVER_WORK_TH(void *args) {
-    int nLine, nErr;
-    char buf[MAX_BUF_SIZE];
+    int nRecv;
+    char session_id[SESSION_ID_LENGTH];
     smtp_session_t *session = NULL;
 
     while (!g_sys_close) {
@@ -27,27 +74,33 @@ void *H_SERVER_WORK_TH(void *args) {
         *  session정보를 해당 위치에 받아 올수있게 개발하여야 합니다.
         */
 
+	nRecv = msgrcv(g_msqid, session_id, sizeof(session_id), 0, IPC_NOWAIT);
+	if (0 > nRecv) {
+	    if (EAGAIN != errno && ENOMSG != errno) {
+		LOG(LOG_MAJ, "ERROR: msq send failed");
+		msleep(25);
+	        continue;
+	    }
+	    /* no msg */
+            msleep(25);
+	    continue;
+	} else if (0 == nRecv) {
+	    /* no msg */
+            msleep(25);
+	    continue;
+	}
+
+	session_id[nRecv] = '\0';
+	session = getSmtpSession(session_id);
         if (session == NULL) {
+            LOG(LOG_MAJ, "ERROR: session get failed");
             msleep(25);
             continue;
         }
 
-        if ((nLine = smtpReadLine(session->sock_fd, buf, sizeof(buf))) <= 0) {
-            LOG (LOG_INF, "%s : %sSMTP Connection closed%s : fd = %d, session_id=%s\n", __func__, C_YLLW, C_NRML,
-                 session->sock_fd,
-                 session->session_id);
-            delSmtpSession(session->session_id);
-            continue;
-        }
-
-        if ((nErr = doSmtpDispatch(session, buf)) != SMTP_DISPATCH_OK) {
-            if (nErr == SMTP_DISPATCH_FAIL) {
-                LOG(LOG_INF, "Smtp connection close by error!");
-            }
-            continue;
-        }
-
+	readAndDispatch(session);
     }
+
     return NULL;
 }
 
