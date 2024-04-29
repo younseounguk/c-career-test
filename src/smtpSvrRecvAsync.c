@@ -7,6 +7,80 @@
  *  smtpHandleInboundConnection로직을 통해 Connection을 맺는걸 권유 드립니다.(해당 로직을 사용안하셔도 무방합니다.)
  *
  */
+#include <sys/epoll.h>
+
+
+pthread_mutex_t gMQmtx = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct _sQNode{
+
+	smtp_session_t *session;
+	struct _sQNode *next;
+
+}sQNode;
+
+sQNode gfirst; 
+
+void enqueue( smtp_session_t *session )
+{
+	pthread_mutex_lock( &gMQmtx );
+	
+	sQNode* node = calloc(1, sizeof(sQNode));
+	node->session = session;
+
+	sQNode* cur = &gfirst; 
+
+	while( 1 ){
+		if( NULL == cur->next )
+		{
+			cur->next = node;
+			break;
+		}
+		
+		cur = cur->next;
+	}
+	
+	pthread_mutex_unlock( &gMQmtx );	
+}
+
+smtp_session_t* dequeue()
+{
+	pthread_mutex_lock( &gMQmtx );
+
+	smtp_session_t *session = NULL;
+
+	sQNode* cur = &gfirst; 
+	sQNode* prev = NULL;
+
+	while( 1 )
+	{
+		if( NULL == cur->next )
+		{
+			session = cur->session;
+
+			if( prev ) 
+				prev->next = NULL;
+			if( &gfirst != cur ) 
+				free(cur);
+
+			break;
+		}
+		
+		prev = cur;
+		cur = cur->next;
+	}
+
+	pthread_mutex_unlock( &gMQmtx );	
+	
+	return session;
+}
+
+
+#define EPOLL_WAIT_TIME		(-1)
+#define MAXEVENTS		2048
+
+int epoll_fd;		// file descriptor refererring to the new epoll instance.
+
 void smtpWaitAsync(int server_fd) {
         /* TODO 과제 2-1
         *  smtpSvrRecvAsync.c 파일은 비동기 처리를 이용하여 데이터를 제어 하는 로직이 작성 되어 있습니다.
@@ -14,6 +88,61 @@ void smtpWaitAsync(int server_fd) {
         *  smtpWaitAsync Function에서 Connection을 맺고(smtpHandleInboundConnection로직 사용 권유)
         *  비동기 통신이 가능하게 개발한후 session정보를 WorkThread로 전달하는 로직을 개발하여야 합니다.
         */
+
+	int event_count;
+	struct epoll_event ie;
+	struct epoll_event *events = NULL;
+	smtp_session_t *session = NULL;
+
+	// create epoll instance
+	epoll_fd = epoll_create1(0);
+
+	// Event : server socket's client requests.
+	ie.data.fd = server_fd;
+	ie.events = EPOLLIN;
+
+	epoll_ctl( epoll_fd, EPOLL_CTL_ADD, server_fd, &ie );
+
+	events = calloc(MAXEVENTS, sizeof(struct epoll_event));
+
+	if( NULL == events )
+		return;
+
+	while( !g_sys_close )
+	{
+		int i = 0;
+		event_count = epoll_wait(epoll_fd, events, MAXEVENTS, EPOLL_WAIT_TIME);
+		
+		for( i; i < event_count; ++i )
+		{
+			if( events[i].data.fd == server_fd )
+			{
+				if( NULL == (session = smtpHandleInboundConnection(server_fd)))
+					break;
+
+				ie.events = EPOLLIN;
+				ie.data.fd = session->sock_fd;
+				ie.data.ptr = (void*)session;
+
+				sendGreetingMessage(session);
+				epoll_ctl( epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &ie);
+				
+			}
+			else
+			{
+				session = events[i].data.ptr;
+				epoll_ctl( epoll_fd, EPOLL_CTL_DEL, session->sock_fd, NULL );
+
+				// session info to worker thread.
+				enqueue(session);
+			}
+		}				
+	}
+
+	free(events);
+	close(server_fd);
+	close(epoll_fd);
+
 }
 
 void *H_SERVER_WORK_TH(void *args) {
@@ -26,6 +155,9 @@ void *H_SERVER_WORK_TH(void *args) {
         /* TODO 과제 2-2
         *  session정보를 해당 위치에 받아 올수있게 개발하여야 합니다.
         */
+	struct epoll_event ie;
+	
+	session = dequeue();
 
         if (session == NULL) {
             msleep(25);
@@ -46,6 +178,12 @@ void *H_SERVER_WORK_TH(void *args) {
             }
             continue;
         }
+
+	ie.events = EPOLLIN;
+	ie.data.fd = session->sock_fd;
+	ie.data.ptr = (void*)session;
+
+	epoll_ctl( epoll_fd, EPOLL_CTL_ADD, session->sock_fd, &ie); 
 
     }
     return NULL;
