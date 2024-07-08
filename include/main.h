@@ -23,6 +23,9 @@
 #include "smtpMailFile.h"
 #include "smtpSvrRecvAsync.h"
 
+#define SUCCESS 0
+#define FAILURE -1
+#define MAX_ASYNC_WORKS_TH 16
 extern int g_sys_close;
 
 #endif //CAREER_TEST3_MAIN_H
