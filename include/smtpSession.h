@@ -2,7 +2,6 @@
 #define CAREER_TEST3_SMTPSESSION_H
 
 
-
 typedef struct smtp_session {
     /* TCP Information */
     int             sock_fd  ;
@@ -18,8 +17,13 @@ typedef struct smtp_session {
     char                smtp_mail_from[ MAX_MAIL_FROM ];
 } smtp_session_t;
 
+void initSessionHashmap();
+void cleanSessionHashmap();
+
 extern void delSmtpSession(char * session_id);
 extern smtp_session_t * addSmtpSession(smtp_session_t * session);
+extern smtp_session_t * popSessionByThreadNum(int thread_num);
+
 
 #endif //CAREER_TEST3_SMTPSESSION_H
 

@@ -22,7 +22,10 @@
 #include "smtpDispatch.h"
 #include "smtpMailFile.h"
 #include "smtpSvrRecvAsync.h"
+#include "smtpHashmap.h"
+#include "smtpTps.h"
 
+#define MAX_ASYNC_WORKS_TH 16
 extern int g_sys_close;
 
 #endif //CAREER_TEST3_MAIN_H
