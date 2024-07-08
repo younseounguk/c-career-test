@@ -1,7 +1,9 @@
 #ifndef CAREER_TEST3_SMTPSESSION_H
 #define CAREER_TEST3_SMTPSESSION_H
 
-
+#define MAX_SESSION 5000
+#define NOT_CONNECTED -9999
+#define CONNECTED 0
 
 typedef struct smtp_session {
     /* TCP Information */
