@@ -4,9 +4,9 @@ int smtpAcceptSock(int server_fd) {
     struct sockaddr_in sock_addr_in;
 
     int client_fd;
-    int addrLen = sizeof(sock_addr_in);
+    socklen_t addrLen = sizeof(sock_addr_in);
 
-    client_fd = accept(server_fd, (struct sockaddr *) &sock_addr_in, (socklen_t *) &addrLen);
+    client_fd = accept(server_fd, (struct sockaddr *) &sock_addr_in, &addrLen);
 
     LOG (LOG_TRC, "TCP Socket Accepted < new client : %d > \n", client_fd);
 
@@ -194,6 +194,7 @@ int smtpSendData(int sock_fd, void *p_data, size_t n_length) {
         send_count += n_written;
     }
 
+    g_smtp_message_send += send_count;
     return send_count;
 }
 
